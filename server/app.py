@@ -22,8 +22,8 @@ class ClearSession(Resource):
 
     def delete(self):
     
-        session['page_views'] = None
-        session['user_id'] = None
+        session.pop('page_views', None)
+        session.pop('user_id', None)
 
         return {}, 204
 
@@ -69,7 +69,7 @@ class Logout(Resource):
 
     def delete(self):
 
-        session['user_id'] = None
+        session.pop('user_id', None)
         
         return {}, 204
 
@@ -87,12 +87,19 @@ class CheckSession(Resource):
 class MemberOnlyIndex(Resource):
     
     def get(self):
-        pass
+        if not session.get('user_id'):
+            return {'error': 'You must be logged in to view this resource'}, 401
+        articles = [ArticleSchema().dump(article) for article in Article.query.filter(Article.is_member_only == True).all()]
+        return make_response(articles, 200)
 
 class MemberOnlyArticle(Resource):
     
     def get(self, id):
-        pass
+        if not session.get('user_id'):
+            return {'error': 'You must be logged in to view this resource'}, 401
+        article = Article.query.filter(Article.id == id).first()
+        article_json = ArticleSchema().dump(article)
+        return article_json, 200
 
 api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(IndexArticle, '/articles', endpoint='article_list')
